@@ -2,19 +2,22 @@ import { useEffect, useState } from 'react'
 import Navbar from './Navbar'
 import ProductCard, { SkeletonCard } from './ProductCard'
 import ProductModal from './ProductModal'
+import ProductGrid from './ProductGrid'
+import Footer from './Footer'
+import ProductStats from './ProductStats'
+import { getCategories } from '../utils/getCategories'
 
 /* ─── category helpers ─────────────────────────────────── */
 const ALL = 'All'
 
 /** Title-cases a raw API category string, e.g. "men's clothing" → "Men's Clothing" */
-const toLabel = (str) =>
-  str.replace(/\b\w/g, (ch) => ch.toUpperCase())
 
 const ProductPage = () => {
   /* ── existing React logic (untouched) ── */
-  const [products, setProducts]   = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [error, setError]         = useState(null)
+  // Data fetching
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   async function fetchProducts() {
     setLoading(true)
@@ -40,11 +43,11 @@ const ProductPage = () => {
 
   /* ── UI-only state ─────────────────────────────────────── */
   const [activeCategory, setActiveCategory] = useState(ALL)
-  const [searchQuery,    setSearchQuery]     = useState('')
-  const [sortBy,         setSortBy]          = useState('default')
-  const [selectedProduct, setSelectedProduct]  = useState(null)
-  const [wishlisted,      setWishlisted]        = useState(new Set())
-  const [cartCount,       setCartCount]         = useState(0)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState('default')
+  const [selectedProduct, setSelectedProduct] = useState(null)
+  const [wishlisted, setWishlisted] = useState(new Set())
+  const [cartCount, setCartCount] = useState(0)
 
   const toggleWish = (id) =>
     setWishlisted(prev => {
@@ -57,26 +60,17 @@ const ProductPage = () => {
   // Build a Map<rawCategory, displayLabel> from the fetched products.
   // Step 1 – collect unique raw strings via a Set.
   // Step 2 – map each unique value to a human-readable label.
-  const categoryLabels = new Map(
-    [...new Set(products.map((p) => p.category))]
-      .map((cat) => [cat, toLabel(cat)])
-  )
-
-  const categories = [ALL, ...categoryLabels.keys()]
+  const { categories, categoryLabels } = getCategories(products, ALL);
 
   const filtered = products
     .filter(p => activeCategory === ALL || p.category === activeCategory)
     .filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()))
     .sort((a, b) => {
-      if (sortBy === 'price-asc')  return a.price - b.price
+      if (sortBy === 'price-asc') return a.price - b.price
       if (sortBy === 'price-desc') return b.price - a.price
-      if (sortBy === 'rating')     return (b.rating?.rate ?? 0) - (a.rating?.rate ?? 0)
+      if (sortBy === 'rating') return (b.rating?.rate ?? 0) - (a.rating?.rate ?? 0)
       return 0
     })
-
-  const avgPrice = filtered.length
-    ? (filtered.reduce((s, p) => s + p.price, 0) / filtered.length).toFixed(0)
-    : 0
 
   /* ── render ─────────────────────────────────────────────── */
   return (
@@ -100,7 +94,7 @@ const ProductPage = () => {
         {/* Search */}
         <div className="search-wrap">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
           </svg>
           <input
             className="search-input"
@@ -139,24 +133,10 @@ const ProductPage = () => {
 
       {/* ─ Stats ────────────────────────────────────────────── */}
       {!loading && !error && (
-        <div className="stats-row">
-          <div className="stat-card">
-            <span className="stat-value">{products.length}</span>
-            <span className="stat-label">Total Products</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-value">{categoryLabels.size}</span>
-            <span className="stat-label">Categories</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-value">${avgPrice}</span>
-            <span className="stat-label">Avg. Price</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-value">{wishlisted.size}</span>
-            <span className="stat-label">Wishlisted</span>
-          </div>
-        </div>
+        <ProductStats
+        wishlisted = {wishlisted}
+        categoryLabels = {categoryLabels}
+        filtered = {filtered}/>
       )}
 
       {/* ─ Products Section ─────────────────────────────────── */}
@@ -179,56 +159,23 @@ const ProductPage = () => {
 
         {/* Error */}
         {!loading && error && (
-          <div className="error-state">
-            <div className="error-icon">⚠️</div>
-            <h2 className="error-title">Failed to load products</h2>
-            <p className="error-msg">{error}</p>
-            <button className="retry-btn" onClick={fetchProducts}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 .49-3.54"/>
-              </svg>
-              Try Again
-            </button>
-          </div>
+          <Error
+          fetchProducts = {fetchProducts}/>
         )}
 
         {/* Products grid */}
         {!loading && !error && (
-          <div className="products-grid">
-            {filtered.length === 0 ? (
-              <div className="error-state" style={{ gridColumn: '1/-1' }}>
-                <div className="error-icon">🔍</div>
-                <h2 className="error-title">No products found</h2>
-                <p className="error-msg">Try a different search term or category.</p>
-              </div>
-            ) : (
-              filtered.map(product => (
-                <ProductCard
-                  setCartCount = {setCartCount}
-                  key={product.id}
-                  product={product}
-                  onOpen={setSelectedProduct}
-                  wishlisted={wishlisted.has(product.id)}
-                  onToggleWish={toggleWish}
-                />
-              ))
-            )}
-          </div>
+          <ProductGrid
+            filtered={filtered}
+            setCartCount={setCartCount}
+            wishlisted={wishlisted}
+            setSelectedProduct={setSelectedProduct}
+            toggleWish={toggleWish} />
         )}
       </main>
 
       {/* ─ Footer ───────────────────────────────────────────── */}
-      <footer className="footer">
-        <div className="footer-brand">
-          <span>🛍️</span> FakeStore &copy; 2025
-        </div>
-        <nav className="footer-links">
-          <a href="#">Privacy</a>
-          <a href="#">Terms</a>
-          <a href="#">API Docs</a>
-        </nav>
-        <span>Powered by fakestoreapi.com</span>
-      </footer>
+      <Footer/>
 
       {/* ─ Product Modal ─────────────────────────────────────── */}
       {selectedProduct && (
