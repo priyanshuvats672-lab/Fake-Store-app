@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Navbar from './Navbar'
-import ProductCard, { SkeletonCard } from './ProductCard'
+import { SkeletonCard } from './ProductCard'
 import ProductModal from './ProductModal'
 import ProductGrid from './ProductGrid'
 import Footer from './Footer'
@@ -10,10 +10,7 @@ import { getCategories } from '../utils/getCategories'
 /* ─── category helpers ─────────────────────────────────── */
 const ALL = 'All'
 
-/** Title-cases a raw API category string, e.g. "men's clothing" → "Men's Clothing" */
-
 const ProductPage = () => {
-  /* ── existing React logic (untouched) ── */
   // Data fetching
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -57,9 +54,6 @@ const ProductPage = () => {
     })
 
   /* ── derived data ──────────────────────────────────────── */
-  // Build a Map<rawCategory, displayLabel> from the fetched products.
-  // Step 1 – collect unique raw strings via a Set.
-  // Step 2 – map each unique value to a human-readable label.
   const { categories, categoryLabels } = getCategories(products, ALL);
 
   const filtered = products
@@ -134,9 +128,9 @@ const ProductPage = () => {
       {/* ─ Stats ────────────────────────────────────────────── */}
       {!loading && !error && (
         <ProductStats
-        wishlisted = {wishlisted}
-        categoryLabels = {categoryLabels}
-        filtered = {filtered}/>
+          wishlisted={wishlisted}
+          categoryLabels={categoryLabels}
+          filtered={filtered} />
       )}
 
       {/* ─ Products Section ─────────────────────────────────── */}
@@ -159,8 +153,17 @@ const ProductPage = () => {
 
         {/* Error */}
         {!loading && error && (
-          <Error
-          fetchProducts = {fetchProducts}/>
+          <div className="error-state">
+            <div className="error-icon">⚠️</div>
+            <h2 className="error-title">Failed to load products</h2>
+            <p className="error-msg">{error}</p>
+            <button className="retry-btn" onClick={fetchProducts}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 1 0 .49-3.54" />
+              </svg>
+              Try Again
+            </button>
+          </div>
         )}
 
         {/* Products grid */}
@@ -175,7 +178,7 @@ const ProductPage = () => {
       </main>
 
       {/* ─ Footer ───────────────────────────────────────────── */}
-      <Footer/>
+      <Footer />
 
       {/* ─ Product Modal ─────────────────────────────────────── */}
       {selectedProduct && (

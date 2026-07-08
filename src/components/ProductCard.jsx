@@ -1,5 +1,3 @@
-import React from 'react'
-
 export const renderStars = (rating = 0) => {
   const full  = Math.floor(rating)
   const half  = rating % 1 >= 0.5

@@ -1,9 +1,7 @@
-import React from 'react'
+import { getAveragePrice } from '../utils/getAveragePrice'
 
 const ProductStats = ({filtered , categoryLabels , wishlisted}) => {
-    const avgPrice = filtered.length
-    ? (filtered.reduce((s, p) => s + p.price, 0) / filtered.length).toFixed(0)
-    : 0
+    const avgPrice = getAveragePrice(filtered)
     return (
         <div className="stats-row">
             <div className="stat-card">
